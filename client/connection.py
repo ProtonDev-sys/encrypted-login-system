@@ -1,6 +1,7 @@
 import socket
 import pickle
 import rsa
+from time import time
 
 
 class ConnectionHandler():
@@ -27,11 +28,14 @@ class ConnectionHandler():
         self.server_key = rsa.PublicKey.load_pkcs1(
             self.client.recv(1024))
 
+    def ping(self):
+        self.client.send(pickle.dumps(
+            ["ping", time()]))
+        return self.client.recv(1024).decode()
+
     def is_connected(self):
         try:
-            self.client.send(pickle.dumps(
-                ["ping"]))
-            self.client.recv(1024)
+            print(self.ping())
             return True
         except:
             return False
@@ -45,18 +49,14 @@ class ConnectionHandler():
         self.client.send(rsa.encrypt(pickle.dumps(
             [key, data]), self.server_key))
         self.last_request = [key, data]
-        if key == "login":
-            print()
 
     def recv(self, buffer):
         recv = self.client.recv(buffer)
         try:
             if recv.decode() == "BAD KEY":
-                print("bad key")
                 self.exchange_keys()
                 self.send(self.last_request[0], self.last_request[1])
                 recv = self.get_client().recv(buffer)
         except:
             ret = rsa.decrypt(recv, self.private_key).decode()
-            print(ret)
             return ret

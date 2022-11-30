@@ -4,6 +4,7 @@ import socket
 import threading
 import pickle
 import rsa
+from time import time
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(("localhost", 9999))
@@ -22,12 +23,9 @@ def handle_connection(client, addr):
             pickled = pickle.loads(recv)
         except:
             pickled = [""]
-        print(pickled)
         if pickled[0] == "ping":
-            client.send("pong".encode())
-
+            client.send(str((time()) - pickled[1]).encode())
         elif pickled[0] == "public key":
-
             clients[addr] = {}
             clients[addr]['public key'] = rsa.PublicKey.load_pkcs1(pickled[1])
             client.send(public_key.save_pkcs1("PEM"))
@@ -38,7 +36,6 @@ def handle_connection(client, addr):
                 if request_packet == "login":
                     username = recv[1][0]
                     password = hashlib.sha256(recv[1][1].encode()).hexdigest()
-
                     conn = sqlite3.connect("userdata.db")
                     cur = conn.cursor()
                     cur.execute(
@@ -47,7 +44,6 @@ def handle_connection(client, addr):
                     client.send(rsa.encrypt(
                         dat.encode(), clients[addr]['public key']))
             except Exception as e:
-                print(e)
                 client.send("BAD KEY".encode())
 
 

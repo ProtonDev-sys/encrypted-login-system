@@ -3,7 +3,6 @@ from customtkinter import *
 from functools import partial
 from connection import ConnectionHandler
 
-
 class LoginApp():
     def __init__(self):
         self.CONNECTION_HANDLER = ConnectionHandler("localhost", 9999)
