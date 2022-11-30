@@ -1,0 +1,1 @@
+requirements.bat will install all the required modules, server.bat will start the server and client.bat will start the client.
