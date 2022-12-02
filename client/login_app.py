@@ -3,10 +3,12 @@ from customtkinter import *
 from functools import partial
 from connection import ConnectionHandler
 
+
 class LoginApp():
     def __init__(self):
         self.CONNECTION_HANDLER = ConnectionHandler("localhost", 9999)
         self.connection_attempts = 1
+        self.session_id = None
 
     def run(self):
         set_appearance_mode("dark")
@@ -26,25 +28,32 @@ class LoginApp():
 
     def build_widgets(self):
 
-        CTkLabel(master=self.frame, text="Login System",
-                 text_font=("Roboto", 24)).pack(pady=12, padx=10)
+        CTkLabel(master=self.frame, text="Login System").pack(pady=12, padx=10)
 
         username_entry = CTkEntry(
             master=self.frame, placeholder_text="Username")
         username_entry.pack(pady=12, padx=10)
 
-        password_entry = CTkEntry(
-            master=self.frame, placeholder_text="Password", show="​")
-        password_entry.pack(pady=12, padx=10)
+        self.password_entry = CTkEntry(
+            master=self.frame, placeholder_text="Password", show="*")
+        self.password_entry.pack(pady=12, padx=10)
         button = CTkButton(master=self.frame, text="Login", command=lambda: self.login(
-            username_entry.get(), password_entry.get())).pack(pady=12, padx=10)
+            username_entry.get(), self.password_entry.get())).pack(pady=12, padx=10)
 
-        self.checkbox = CTkCheckBox(master=self.frame, text="Remember Me")
+        self.checkbox = CTkCheckBox(
+            master=self.frame, text="Remember Me", command=self.visible_password)
         self.checkbox.pack(pady=12, padx=10)
 
         self.error_label = CTkLabel(master=self.frame, text="",
-                                    text_color="red", text_font=("Roboto", 8))
+                                    text_color="red")
         self.error_label.pack(pady=12, padx=10)
+
+    def visible_password(self):
+        if self.checkbox.get() == 1:
+            character = ""
+        else:
+            character = "*"
+        self.password_entry.configure(show=character)
 
     def reconnect(self):
         client = self.CONNECTION_HANDLER.get_client()
@@ -64,22 +73,22 @@ class LoginApp():
         for widget in self.frame.winfo_children():
             widget.destroy()
         CTkLabel(master=self.frame, text=f"Connection failed!\nReconnect attempt {self.connection_attempts}",
-                 text_color="red", text_font=("Roboto", 24)).pack(pady=12, padx=10)
+                 text_color="red").pack(pady=12, padx=10)
         CTkButton(master=self.frame, text="Reconnect",
                   command=self.reconnect).pack(pady=12, padx=10)
 
     def attempt_login(self, username, password):
         client = self.CONNECTION_HANDLER.get_client()
-        if not self.CONNECTION_HANDLER.is_connected():
+        if not client:
             self.connection_lost()
         self.CONNECTION_HANDLER.send("login", [username, password])
-        recv = self.CONNECTION_HANDLER.recv(1024)
-        return (recv and recv == "1")
+        recv = self.CONNECTION_HANDLER.recv(2048)
+        return recv
 
     def login(self, username, password):
-        print("yes", username, password)
         login_result = self.attempt_login(username, password)
-        if not login_result:
-            self.error_label.set_text("Invalid username or password")
+        print(login_result)
+        if login_result['STATUS'] == 0:
+            self.error_label.configure(text=login_result['ERROR'])
         else:
-            self.error_label.set_text("Login success")
+            self.session_id = login_result['SESSION ID']

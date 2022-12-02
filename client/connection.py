@@ -8,7 +8,7 @@ class ConnectionHandler():
     def __init__(self, ip, port):
         self.ip = ip
         self.port = port
-        self.public_key, self.private_key = rsa.newkeys(1024)
+        self.public_key, self.private_key = rsa.newkeys(2048)
         self.server_key = None
         self.last_request = []
         self.connect()
@@ -26,16 +26,17 @@ class ConnectionHandler():
         self.client.send(pickle.dumps(
             ["public key", self.public_key.save_pkcs1("PEM")]))
         self.server_key = rsa.PublicKey.load_pkcs1(
-            self.client.recv(1024))
+            self.client.recv(2048))
 
     def ping(self):
         self.client.send(pickle.dumps(
             ["ping", time()]))
-        return self.client.recv(1024).decode()
+        print("ping, wait")
+        return self.client.recv(2048).decode()
 
     def is_connected(self):
         try:
-            print(self.ping())
+            self.ping()
             return True
         except:
             return False
@@ -58,5 +59,5 @@ class ConnectionHandler():
                 self.send(self.last_request[0], self.last_request[1])
                 recv = self.get_client().recv(buffer)
         except:
-            ret = rsa.decrypt(recv, self.private_key).decode()
+            ret = pickle.loads(rsa.decrypt(recv, self.private_key))
             return ret
